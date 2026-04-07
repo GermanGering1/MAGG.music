@@ -22,6 +22,7 @@ export interface Playlist {
   title: string;
   user_id: string;
   created_at: string;
+  cover_url?: string | null;
 }
 
 export interface PlaylistTrack {

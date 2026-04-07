@@ -1,4 +1,5 @@
-import { Heart, Play } from 'lucide-react';
+// TrackCard.tsx
+import { Heart, Play, Pause } from 'lucide-react';
 import type { Track } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -13,8 +14,9 @@ interface Props {
 
 export const TrackCard = ({ track, onLikeToggle }: Props) => {
   const { user } = useAuth();
-  const { setCurrentTrack, play, currentTrack, isPlaying } = usePlayer();
+  const { setCurrentTrack, play, pause, currentTrack, isPlaying } = usePlayer();
   const [liked, setLiked] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -36,16 +38,18 @@ export const TrackCard = ({ track, onLikeToggle }: Props) => {
     if (liked) {
       await supabase.from('likes').delete().eq('user_id', user.id).eq('track_id', track.id);
       setLiked(false);
+      toast.success('Удалено из любимых');
     } else {
       await supabase.from('likes').insert({ user_id: user.id, track_id: track.id });
       setLiked(true);
+      toast.success('Добавлено в любимые');
     }
     onLikeToggle?.();
   };
 
   const handlePlay = () => {
     if (currentTrack?.id === track.id && isPlaying) {
-      usePlayer.getState().pause();
+      pause();
     } else {
       setCurrentTrack(track);
       play();
@@ -55,26 +59,68 @@ export const TrackCard = ({ track, onLikeToggle }: Props) => {
   const isCurrent = currentTrack?.id === track.id;
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow p-4 flex items-center justify-between">
-      <div className="flex items-center space-x-4 flex-1">
-        <img
-          src={track.cover_url || 'https://placehold.co/400?text=No+Cover'}
-          alt={track.title}
-          className="w-12 h-12 rounded object-cover"
-        />
-        <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 dark:text-white">{track.title}</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">{track.artist}</p>
-          <p className="text-xs text-purple-500">{track.license_type}</p>
+    <div
+      className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-[#D9D9D9]/30 hover:border-[#7443FF]/20"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-4 flex-1">
+          <div className="relative">
+            <img
+              src={track.cover_url || 'https://placehold.co/56?text=🎵'}
+              alt={track.title}
+              className="w-14 h-14 rounded-xl object-cover shadow-md transition-transform duration-300 group-hover:scale-105"
+            />
+            {isHovered && (
+              <button
+                onClick={handlePlay}
+                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-xl transition-all duration-200"
+              >
+                {isCurrent && isPlaying ? (
+                  <Pause className="h-6 w-6 text-white" />
+                ) : (
+                  <Play className="h-6 w-6 text-white ml-0.5" />
+                )}
+              </button>
+            )}
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-[#000000] group-hover:text-[#7443FF] transition-colors duration-200">
+              {track.title}
+            </h3>
+            <p className="text-sm text-[#000000]/60">{track.artist}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs px-2 py-0.5 bg-[#7443FF]/10 text-[#7443FF] rounded-full font-medium">
+                {track.license_type === 'free' ? 'Free' : track.license_type === 'royalty-free' ? 'Royalty Free' : 'Premium'}
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
-      <div className="flex items-center space-x-2">
-        <button onClick={handlePlay} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-          <Play className={`h-5 w-5 ${isCurrent && isPlaying ? 'text-purple-600' : 'text-gray-600 dark:text-gray-300'}`} />
-        </button>
-        <button onClick={handleLike} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-          <Heart className={`h-5 w-5 ${liked ? 'fill-red-500 text-red-500' : 'text-gray-600 dark:text-gray-300'}`} />
-        </button>
+        <div className="flex items-center space-x-1">
+          <button
+            onClick={handlePlay}
+            className="p-2 rounded-full hover:bg-[#7443FF]/10 transition-all duration-200 text-[#000000]/70 hover:text-[#7443FF]"
+          >
+            {isCurrent && isPlaying ? (
+              <Pause className="h-5 w-5" />
+            ) : (
+              <Play className="h-5 w-5 ml-0.5" />
+            )}
+          </button>
+          <button
+            onClick={handleLike}
+            className="p-2 rounded-full hover:bg-[#7443FF]/10 transition-all duration-200 transform hover:scale-110"
+          >
+            <Heart
+              className={`h-5 w-5 transition-all duration-200 ${
+                liked
+                  ? 'fill-[#7443FF] text-[#7443FF]'
+                  : 'text-[#000000]/40 group-hover:text-[#000000]/70'
+              }`}
+            />
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,10 +1,13 @@
-import { useEffect, useRef } from 'react';
+// Player.tsx
+import { useEffect, useRef, useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
-import { Play, Pause, Volume2, VolumeX, X } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 
 export const Player = () => {
   const { currentTrack, isPlaying, play, pause, volume, setVolume } = usePlayer();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -17,36 +20,103 @@ export const Player = () => {
     if (audioRef.current) audioRef.current.volume = volume;
   }, [volume]);
 
-  if (!currentTrack) return null;
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+    };
+  }, [currentTrack]);
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setVolume(parseFloat(e.target.value));
   };
 
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const progress = duration ? (currentTime / duration) * 100 : 0;
+  const VolumeIcon = volume === 0 ? VolumeX : Volume2;
+
+  if (!currentTrack) return null;
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 p-3 shadow-lg z-50">
+    <>
       <audio ref={audioRef} src={currentTrack.audio_url} onEnded={() => pause()} />
-      <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center space-x-3 min-w-0 flex-1">
-          <img src={currentTrack.cover_url || 'https://placehold.co/40'} className="w-10 h-10 rounded object-cover" />
-          <div className="truncate">
-            <p className="font-medium text-sm truncate">{currentTrack.title}</p>
-            <p className="text-xs text-gray-500 truncate">{currentTrack.artist}</p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button onClick={() => (isPlaying ? pause() : play())} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-            {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+      <div
+        className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-white rounded-2xl shadow-2xl z-50 border border-gray-100"
+        style={{
+          width: '60vw',
+          minWidth: '900px',
+          height: '64px',
+          padding: '0 20px',
+        }}
+      >
+        <div className="grid grid-cols-[auto_1fr_auto_1fr_auto] items-center gap-4 h-full">
+          {/* Время трека */}
+          <span className="text-xs font-inter text-black/70 tabular-nums" style={{ fontFamily: 'Inter, sans-serif' }}>
+            {formatTime(currentTime)}
+          </span>
+
+          {/* Ползунок прогресса */}
+          <input
+            type="range"
+            min="0"
+            max={duration || 0}
+            value={currentTime}
+            onChange={handleSeek}
+            className="w-full h-1 rounded-full appearance-none cursor-pointer"
+            style={{
+              background: `linear-gradient(to right, #7443FF 0%, #7443FF ${progress}%, #D9D9D9 ${progress}%, #D9D9D9 100%)`,
+            }}
+          />
+
+          {/* Кнопка Play/Pause */}
+          <button
+            onClick={() => (isPlaying ? pause() : play())}
+            className="flex items-center justify-center w-8 h-8 rounded-full bg-[#7443FF] text-white hover:bg-[#5a32cc] transition-all duration-200 shadow-md"
+          >
+            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
           </button>
-          <div className="flex items-center space-x-2">
-            {volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            <input type="range" min="0" max="1" step="0.01" value={volume} onChange={handleVolumeChange} className="w-20" />
-          </div>
-          <button onClick={() => usePlayer.getState().setCurrentTrack(null)} className="p-1 hover:bg-gray-100 rounded-full">
-            <X className="h-4 w-4" />
-          </button>
+
+          {/* Ползунок громкости */}
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={volume}
+            onChange={handleVolumeChange}
+            className="w-full h-1 rounded-full appearance-none cursor-pointer"
+            style={{
+              background: `linear-gradient(to right, #7443FF 0%, #7443FF ${volume * 100}%, #D9D9D9 ${volume * 100}%, #D9D9D9 100%)`,
+            }}
+          />
+
+          {/* Иконка динамика (справа от ползунка громкости) */}
+          <VolumeIcon className="h-4 w-4 text-black/60" />
         </div>
       </div>
-    </div>
+    </>
   );
 };
