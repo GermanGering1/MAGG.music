@@ -5,33 +5,78 @@ import type { Track, Playlist } from '../types';
 import { TrackCard } from '../components/TrackCard';
 import { PlaylistCard } from '../components/PlaylistCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { Music, ListMusic } from 'lucide-react';
+import { Music, ListMusic, ChevronDown } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 export const Home = () => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const LIMIT = 10;
 
   useEffect(() => {
-    fetchData();
+    fetchInitialData();
   }, []);
 
-  const fetchData = async () => {
-    const [tracksRes, playlistsRes] = await Promise.all([
-      supabase
+  const fetchInitialData = async () => {
+    setLoading(true);
+    try {
+      // Загружаем первые LIMIT треков (без profiles, если нет связи)
+      const { data: tracksData, error: tracksError } = await supabase
         .from('tracks')
-        .select('*, profiles(username)')
+        .select('*')
         .order('created_at', { ascending: false })
-        .limit(10),
-      supabase
+        .range(0, LIMIT - 1);
+
+      if (tracksError) throw tracksError;
+
+      // Загружаем плейлисты
+      const { data: playlistsData, error: playlistsError } = await supabase
         .from('playlists')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(6)
-    ]);
-    if (tracksRes.data) setTracks(tracksRes.data);
-    if (playlistsRes.data) setPlaylists(playlistsRes.data);
-    setLoading(false);
+        .limit(6);
+
+      if (playlistsError) throw playlistsError;
+
+      setTracks(tracksData || []);
+      setPlaylists(playlistsData || []);
+      setHasMore((tracksData?.length || 0) === LIMIT);
+      setOffset(LIMIT);
+    } catch (error: any) {
+      toast.error('Ошибка загрузки данных: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMoreTracks = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const { data, error } = await supabase
+        .from('tracks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + LIMIT - 1);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        setTracks(prev => [...prev, ...data]);
+        setHasMore(data.length === LIMIT);
+        setOffset(offset + data.length);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error: any) {
+      toast.error('Ошибка загрузки треков: ' + error.message);
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
   if (loading) return <LoadingSpinner />;
@@ -55,11 +100,29 @@ export const Home = () => {
               <p className="text-[#000000]/60">Пока нет треков. Загрузите первый трек!</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {tracks.map(track => (
-                <TrackCard key={track.id} track={track} onLikeToggle={fetchData} />
-              ))}
-            </div>
+            <>
+              <div className="space-y-3">
+                {tracks.map(track => (
+                  <TrackCard key={track.id} track={track} />
+                ))}
+              </div>
+              {hasMore && (
+                <div className="flex justify-center mt-6">
+                  <button
+                    onClick={loadMoreTracks}
+                    disabled={loadingMore}
+                    className="flex items-center gap-2 px-6 py-2.5 bg-white border border-[#D9D9D9] rounded-xl text-[#7443FF] font-medium hover:bg-[#7443FF]/5 transition-all duration-200 disabled:opacity-50"
+                  >
+                    {loadingMore ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#7443FF] border-t-transparent" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                    {loadingMore ? 'Загрузка...' : 'Показать ещё'}
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
 
