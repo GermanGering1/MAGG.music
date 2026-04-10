@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { formatTime } from '../utils/formatTime';
 
 export const Player = () => {
   const { currentTrack, isPlaying, play, pause, volume, setVolume } = usePlayer();
@@ -48,13 +49,6 @@ export const Player = () => {
     setVolume(parseFloat(e.target.value));
   };
 
-  const formatTime = (time: number) => {
-    if (isNaN(time)) return '0:00';
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
   const progress = duration ? (currentTime / duration) * 100 : 0;
   const VolumeIcon = volume === 0 ? VolumeX : Volume2;
 
@@ -88,6 +82,7 @@ export const Player = () => {
             className="w-full h-1 rounded-full appearance-none cursor-pointer"
             style={{
               background: `linear-gradient(to right, #7443FF 0%, #7443FF ${progress}%, #D9D9D9 ${progress}%, #D9D9D9 100%)`,
+              accentColor: `#7443FF`
             }}
           />
 
@@ -110,6 +105,7 @@ export const Player = () => {
             className="w-full h-1 rounded-full appearance-none cursor-pointer"
             style={{
               background: `linear-gradient(to right, #7443FF 0%, #7443FF ${volume * 100}%, #D9D9D9 ${volume * 100}%, #D9D9D9 100%)`,
+              accentColor: `#7443FF`
             }}
           />
 

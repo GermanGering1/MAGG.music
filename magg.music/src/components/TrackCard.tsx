@@ -90,11 +90,6 @@ export const TrackCard = ({ track, onLikeToggle }: Props) => {
               {track.title}
             </h3>
             <p className="text-sm text-[#000000]/60">{track.artist}</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xs px-2 py-0.5 bg-[#7443FF]/10 text-[#7443FF] rounded-full font-medium">
-                {track.license_type === 'free' ? 'Free' : track.license_type === 'royalty-free' ? 'Royalty Free' : 'Premium'}
-              </span>
-            </div>
           </div>
         </div>
         <div className="flex items-center space-x-1">
