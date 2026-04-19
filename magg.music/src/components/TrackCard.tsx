@@ -1,5 +1,5 @@
 // TrackCard.tsx
-import { Heart, Play, Pause } from 'lucide-react';
+import { Heart, Play, Pause, Info } from 'lucide-react';
 import type { Track } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -11,6 +11,30 @@ interface Props {
   track: Track;
   onLikeToggle?: () => void;
 }
+
+// Компонент бейджа лицензии
+const LicenseBadge = ({ license }: { license: string }) => {
+  const getLicenseInfo = (license: string) => {
+    if (license.includes('CC BY-SA')) return { label: 'CC BY-SA', color: 'bg-blue-100 text-blue-800', desc: 'Разрешены ремиксы с указанием авторства' };
+    if (license.includes('CC BY')) return { label: 'CC BY', color: 'bg-green-100 text-green-800', desc: 'Только указание авторства' };
+    if (license.includes('CC0')) return { label: 'CC0', color: 'bg-purple-100 text-purple-800', desc: 'Общественное достояние' };
+    return { label: license, color: 'bg-gray-100 text-gray-800', desc: license };
+  };
+
+  const info = getLicenseInfo(license);
+  return (
+    <div className="relative group/badge">
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${info.color}`}>
+        {info.label}
+      </span>
+      <div className="absolute bottom-full left-0 mb-2 hidden group-hover/badge:block z-10">
+        <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+          {info.desc}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const TrackCard = ({ track, onLikeToggle }: Props) => {
   const { user } = useAuth();
@@ -86,10 +110,20 @@ export const TrackCard = ({ track, onLikeToggle }: Props) => {
             )}
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-[#000000] group-hover:text-[#7443FF] transition-colors duration-200">
-              {track.title}
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-[#000000] group-hover:text-[#7443FF] transition-colors duration-200">
+                {track.title}
+              </h3>
+              {/* Бейдж лицензии */}
+              <LicenseBadge license={track.license_type} />
+            </div>
             <p className="text-sm text-[#000000]/60">{track.artist}</p>
+            {/* Показываем жанр, если есть */}
+            {track.genre && (
+              <span className="inline-block mt-1 text-xs text-[#000000]/40 bg-gray-100 px-2 py-0.5 rounded-full">
+                {track.genre}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center space-x-1">

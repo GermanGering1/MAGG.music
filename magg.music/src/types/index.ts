@@ -2,7 +2,10 @@ export interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
+  bio: string | null;
+  donation_url: string | null;
   created_at: string;
+  updated_at: string | null;
 }
 
 export interface Track {
@@ -14,6 +17,8 @@ export interface Track {
   license_type: string;
   user_id: string;
   created_at: string;
+  genre?: string | null;
+  play_count: number;
   profiles?: { username: string };
 }
 

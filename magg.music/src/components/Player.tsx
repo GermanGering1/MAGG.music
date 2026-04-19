@@ -37,6 +37,16 @@ export const Player = () => {
     };
   }, [currentTrack]);
 
+
+  useEffect(() => {
+    if (currentTrack && isPlaying) {
+      const incrementPlayCount = async () => {
+        await supabase.rpc('increment_play_count', { track_id: currentTrack.id });
+      };
+      incrementPlayCount();
+    }
+  }, [currentTrack?.id, isPlaying]);
+
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);
     if (audioRef.current) {

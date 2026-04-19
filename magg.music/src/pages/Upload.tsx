@@ -1,22 +1,61 @@
 // Upload.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { UploadCloud, Music, Image, FileAudio, X } from 'lucide-react';
+import type { Track } from '../types';
+
+// Предустановленные жанры (можно заменить на динамические из БД)
+const GENRES = [
+  'Pop', 'Rock', 'Hip Hop', 'Electronic', 'Jazz', 'Classical', 'Reggae', 'Blues',
+  'Metal', 'Folk', 'Punk', 'Funk', 'Soul', 'R&B', 'Country', 'Latin', 'Ambient'
+];
 
 export const Upload = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [artist, setArtist] = useState('');
+  const [genre, setGenre] = useState('');
+  const [customGenre, setCustomGenre] = useState('');
   const [license, setLicense] = useState('CC BY-SA 4.0');
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [audioPreview, setAudioPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+
+  // Для ремиксов
+  const [isRemix, setIsRemix] = useState(false);
+  const [originalTrackId, setOriginalTrackId] = useState('');
+  const [availableTracks, setAvailableTracks] = useState<Track[]>([]);
+  const [loadingTracks, setLoadingTracks] = useState(false);
+
+  // Загрузка списка треков для выбора оригинала (при включении чекбокса)
+  useEffect(() => {
+    if (isRemix && availableTracks.length === 0) {
+      loadTracks();
+    }
+  }, [isRemix]);
+
+  const loadTracks = async () => {
+    setLoadingTracks(true);
+    try {
+      const { data, error } = await supabase
+        .from('tracks')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setAvailableTracks(data || []);
+    } catch (error: any) {
+      toast.error('Ошибка загрузки треков: ' + error.message);
+    } finally {
+      setLoadingTracks(false);
+    }
+  };
 
   const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -54,15 +93,22 @@ export const Upload = () => {
     e.preventDefault();
     if (!user) return toast.error('Необходимо войти');
     if (!audioFile) return toast.error('Выберите аудиофайл');
+    
+    // Определяем финальный жанр
+    const finalGenre = genre === 'other' ? customGenre : genre;
+    if (!finalGenre.trim()) return toast.error('Укажите жанр');
+
     setUploading(true);
 
     try {
+      // Загрузка аудиофайла
       const audioExt = audioFile.name.split('.').pop();
       const audioPath = `${user.id}/${Date.now()}.${audioExt}`;
       const { error: audioError } = await supabase.storage.from('music').upload(audioPath, audioFile);
       if (audioError) throw audioError;
       const { data: audioPublic } = supabase.storage.from('music').getPublicUrl(audioPath);
 
+      // Загрузка обложки (если есть)
       let coverUrl = null;
       if (coverFile) {
         const coverExt = coverFile.name.split('.').pop();
@@ -72,15 +118,36 @@ export const Upload = () => {
         coverUrl = coverPublic.publicUrl;
       }
 
-      const { error: dbError } = await supabase.from('tracks').insert({
-        title,
-        artist,
-        license_type: license,
-        audio_url: audioPublic.publicUrl,
-        cover_url: coverUrl,
-        user_id: user.id
-      });
+      // Создание записи трека
+      const { data: trackData, error: dbError } = await supabase
+        .from('tracks')
+        .insert({
+          title,
+          artist,
+          genre: finalGenre,
+          license_type: license,
+          audio_url: audioPublic.publicUrl,
+          cover_url: coverUrl,
+          user_id: user.id
+        })
+        .select('id')
+        .single();
+
       if (dbError) throw dbError;
+      if (!trackData) throw new Error('Не удалось получить ID трека');
+
+      const trackId = trackData.id;
+
+      // Если это ремикс, добавляем связь
+      if (isRemix && originalTrackId) {
+        const { error: remixError } = await supabase
+          .from('remixes')
+          .insert({
+            remix_track_id: trackId,
+            original_track_id: originalTrackId
+          });
+        if (remixError) throw remixError;
+      }
 
       toast.success('Трек загружен!');
       navigate('/');
@@ -137,6 +204,30 @@ export const Upload = () => {
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-[#000000]/80 mb-1">Жанр</label>
+            <select
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7443FF] bg-white"
+              required
+            >
+              <option value="">Выберите жанр</option>
+              {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+              <option value="other">Другой...</option>
+            </select>
+            {genre === 'other' && (
+              <input
+                type="text"
+                placeholder="Укажите свой жанр"
+                value={customGenre}
+                onChange={(e) => setCustomGenre(e.target.value)}
+                className="w-full mt-2 px-4 py-2.5 border border-[#D9D9D9] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7443FF]"
+                required={genre === 'other'}
+              />
+            )}
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-[#000000]/80 mb-1">Лицензия</label>
             <select
               value={license}
@@ -148,6 +239,48 @@ export const Upload = () => {
               <option value="CC0 1.0">CC0 (Общественное достояние)</option>
             </select>
           </div>
+
+          {/* Чекбокс "Это ремикс" */}
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="isRemix"
+              checked={isRemix}
+              onChange={(e) => setIsRemix(e.target.checked)}
+              className="w-4 h-4 text-[#7443FF] rounded border-gray-300 focus:ring-[#7443FF]"
+            />
+            <label htmlFor="isRemix" className="text-sm font-medium text-[#000000]/80">
+              Это ремикс (основан на другом треке)
+            </label>
+          </div>
+
+          {/* Выбор оригинального трека, если чекбокс активен */}
+          {isRemix && (
+            <div>
+              <label className="block text-sm font-medium text-[#000000]/80 mb-1">
+                Оригинальный трек
+              </label>
+              <select
+                value={originalTrackId}
+                onChange={(e) => setOriginalTrackId(e.target.value)}
+                className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#7443FF] bg-white"
+                required={isRemix}
+                disabled={loadingTracks}
+              >
+                <option value="">
+                  {loadingTracks ? 'Загрузка треков...' : 'Выберите оригинальный трек'}
+                </option>
+                {availableTracks.map(track => (
+                  <option key={track.id} value={track.id}>
+                    {track.artist} — {track.title}
+                  </option>
+                ))}
+              </select>
+              {loadingTracks && (
+                <div className="mt-2 text-sm text-[#7443FF]">Загрузка списка треков...</div>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-[#000000]/80 mb-2">Аудиофайл (MP3, WAV, OGG)</label>

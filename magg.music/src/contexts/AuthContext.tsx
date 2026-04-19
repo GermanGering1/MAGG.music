@@ -188,6 +188,8 @@ useEffect(() => {
     await supabase.auth.signOut();
   };
 
+  
+
   return (
     <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut }}>
       {children}
