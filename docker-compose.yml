@@ -1,0 +1,16 @@
+services:
+  magg-music:
+    container_name: magg-music
+    build:
+      context: ./magg.music
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    name: proxy
+    external: true
