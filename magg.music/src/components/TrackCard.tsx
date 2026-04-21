@@ -1,5 +1,5 @@
 // TrackCard.tsx
-import { Heart, Play, Pause, Info } from 'lucide-react';
+import { Heart, Play, Pause } from 'lucide-react';
 import type { Track } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';

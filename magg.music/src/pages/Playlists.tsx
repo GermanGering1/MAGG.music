@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import type { Playlist } from '../types';
 import { Link } from 'react-router-dom';
-import { Plus, ListMusic, Music2, Image, X, Edit2 } from 'lucide-react';
+import { Plus, ListMusic, Music2, Image } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const Playlists = () => {
@@ -25,6 +25,7 @@ export const Playlists = () => {
   }, [user]);
 
   const fetchPlaylists = async () => {
+    if (!user) return;
     const { data } = await supabase.from('playlists').select('*').eq('user_id', user.id);
     setPlaylists(data || []);
     setLoading(false);

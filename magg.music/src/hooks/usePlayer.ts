@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { Track } from '../types';
 
 interface PlayerState {
   currentTrack: Track | null;

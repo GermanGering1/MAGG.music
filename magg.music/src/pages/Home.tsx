@@ -5,7 +5,7 @@ import type { Track, Playlist } from '../types';
 import { TrackCard } from '../components/TrackCard';
 import { PlaylistCard } from '../components/PlaylistCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { Music, ListMusic, ChevronDown, Search, Filter } from 'lucide-react';
+import { Music, ListMusic, ChevronDown, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { debounce } from 'lodash'; // или напишите свою debounce функцию
 
