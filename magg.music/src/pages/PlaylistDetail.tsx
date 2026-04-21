@@ -38,8 +38,8 @@ export const PlaylistDetail = () => {
     ]);
     if (playlistRes.data) setPlaylist(playlistRes.data);
     if (tracksRes.data) {
-      const typedData = tracksRes.data as { tracks: Track }[];
-      setTracks(typedData.map(item => item.tracks));
+      const typedData = tracksRes.data as unknown as { tracks: Track | Track[] }[];
+      setTracks(typedData.map((item) => Array.isArray(item.tracks) ? item.tracks[0] : item.tracks).filter(Boolean) as Track[]);
     }
     if (allTracksRes.data) setAllTracks(allTracksRes.data);
     setLoading(false);
