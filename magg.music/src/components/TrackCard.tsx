@@ -50,7 +50,7 @@ export const TrackCard = ({ track, onLikeToggle }: Props) => {
         .eq('user_id', user.id)
         .eq('track_id', track.id)
         .maybeSingle()
-        .then(({ data }) => setLiked(!!data));
+        .then(({ data }: { data: unknown }) => setLiked(Boolean(data)));
     }
   }, [user, track.id]);
 
