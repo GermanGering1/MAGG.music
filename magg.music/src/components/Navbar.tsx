@@ -1,7 +1,7 @@
 // Navbar.tsx
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Music, Upload, User, Heart, ListMusic, LogOut, LogIn } from 'lucide-react';
+import { User, LogOut, LogIn } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, signOut } = useAuth();

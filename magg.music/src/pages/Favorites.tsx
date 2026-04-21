@@ -16,10 +16,10 @@ export const Favorites = () => {
         .from('likes')
         .select('track_id, tracks(*)')
         .eq('user_id', user.id)
-        .then(({ data }) => {
+        .then(({ data }: { data: unknown }) => {
           if (data) {
-            const typedData = data as { tracks: Track }[];
-            setLikedTracks(typedData.map(item => item.tracks));
+            const typedData = data as unknown as { tracks: Track | Track[] }[];
+            setLikedTracks(typedData.map((item) => Array.isArray(item.tracks) ? item.tracks[0] : item.tracks).filter(Boolean) as Track[]);
           }
           setLoading(false);
         });

@@ -48,7 +48,10 @@ export const Profile = () => {
     } else {
       setUserTracks(tracksData || []);
       // Суммируем прослушивания
-      const total = (tracksData || []).reduce((sum, track) => sum + (track.play_count || 0), 0);
+      const total = (tracksData || []).reduce(
+        (sum: number, track: Track) => sum + (track.play_count || 0),
+        0
+      );
       setTotalPlays(total);
     }
     setLoading(false);

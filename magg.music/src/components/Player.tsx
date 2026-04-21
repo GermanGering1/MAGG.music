@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePlayer } from '../hooks/usePlayer';
 import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { formatTime } from '../utils/formatTime';
+import { supabase } from '../lib/supabase';
 
 export const Player = () => {
   const { currentTrack, isPlaying, play, pause, volume, setVolume } = usePlayer();

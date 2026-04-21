@@ -1,5 +1,5 @@
 // TrackCard.tsx
-import { Heart, Play, Pause, Info } from 'lucide-react';
+import { Heart, Play, Pause } from 'lucide-react';
 import type { Track } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
@@ -50,7 +50,7 @@ export const TrackCard = ({ track, onLikeToggle }: Props) => {
         .eq('user_id', user.id)
         .eq('track_id', track.id)
         .maybeSingle()
-        .then(({ data }) => setLiked(!!data));
+        .then(({ data }: { data: unknown }) => setLiked(Boolean(data)));
     }
   }, [user, track.id]);
 

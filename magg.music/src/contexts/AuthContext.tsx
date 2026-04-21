@@ -1,7 +1,7 @@
 // contexts/AuthContext.tsx
 import React, { createContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js';
 import type { Profile } from '../types';
 
 interface AuthContextType {
@@ -38,7 +38,7 @@ const fetchProfile = async (userId: string) => {
       if (!raw) return null;
       const parsed = JSON.parse(raw);
       return parsed?.currentSession?.access_token || null;
-    } catch (e) {
+    } catch {
       return null;
     }
   };
@@ -48,7 +48,7 @@ const fetchProfile = async (userId: string) => {
   for (let i = 0; i < 10; i++) {
     token = getToken();
     if (token) break;
-    await new Promise(r => setTimeout(r, 200));
+    await new Promise<void>((resolve) => setTimeout(resolve, 200));
   }
 
   if (!token) {
@@ -130,7 +130,8 @@ useEffect(() => {
       if (isMounted) setLoading(false);
     });
 
-  const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+  const { data: listener } = supabase.auth.onAuthStateChange(
+    async (_event: AuthChangeEvent, session: Session | null) => {
 
 
     if (!isMounted) return;
@@ -147,7 +148,8 @@ useEffect(() => {
       setProfile(null);
       setLoading(false);
     }
-  });
+    }
+  );
 
   return () => {
 
@@ -196,4 +198,3 @@ useEffect(() => {
     </AuthContext.Provider>
   );
 };
-
